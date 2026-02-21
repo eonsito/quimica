@@ -3,169 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuimiLab Pro: IUPAC Global</title>
+    <title>QuimiLab Pro | GitHub Edition</title>
     <script src="https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .mol-svg svg { width: 100%; height: 300px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
-        .history-card svg { height: 100px; width: 100%; }
-        .loader { border-top-color: #4f46e5; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #molOutput svg { width: 100%; height: 320px; transition: all 0.3s; }
+        .mol-card:hover svg { transform: scale(1.05); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #6366f1; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-slate-50 min-h-screen text-slate-900">
 
-    <div class="max-w-6xl mx-auto p-4 md:p-8">
-        <div class="bg-indigo-700 text-white p-8 rounded-3xl shadow-xl mb-8 flex flex-col md:flex-row justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-extrabold italic">QuimiLab v2.0</h1>
-                <p class="opacity-80">Diccionario Universal de Química Orgánica (Soporta Español)</p>
-            </div>
-            <div id="status" class="mt-4 md:mt-0 text-xs bg-indigo-800 px-4 py-2 rounded-full">Cargando motor RDKit...</div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Nombre IUPAC (Español o Inglés):</label>
-                    <input type="text" id="chemInput" placeholder="Ej: 4-metil-2-hexeno" 
-                           class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 outline-none mb-4 transition-all">
-                    <button onclick="searchMolecule()" id="mainBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2">
-                        <span>Graficar Estructura</span>
-                    </button>
-                </div>
-
-                <div id="infoPanel" class="hidden bg-white p-6 rounded-2xl shadow-sm border-l-4 border-indigo-500">
-                    <h3 class="font-bold text-gray-800 mb-4 text-lg underline decoration-indigo-300">Análisis del Nombre</h3>
-                    <div id="stepsList" class="space-y-3 text-sm text-gray-600"></div>
-                </div>
+    <div class="max-w-5xl mx-auto p-4 py-10">
+        <div class="bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
+            
+            <div class="bg-indigo-600 p-8 text-white">
+                <h1 class="text-4xl font-black tracking-tight mb-2">QuimiLab v4.0</h1>
+                <p id="status" class="text-indigo-100 font-medium">Cargando motor RDKit...</p>
             </div>
 
-            <div class="lg:col-span-2 space-y-6">
-                <div id="resultDisplay" class="hidden bg-white p-8 rounded-3xl shadow-inner border border-gray-200 min-h-[400px] flex flex-col items-center justify-center relative">
-                    <div id="molOutput" class="mol-svg w-full"></div>
-                    <div id="molMeta" class="mt-4 text-center">
-                        <h2 id="displayTitle" class="text-2xl font-bold text-indigo-900 uppercase tracking-tight"></h2>
-                        <p id="formulaTag" class="text-indigo-500 font-mono font-bold"></p>
+            <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-500 uppercase mb-3">Nombre IUPAC (Soporta Español)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="chemInput" placeholder="Ej: 4-metil-trans-2-hexeno" 
+                                   class="flex-1 bg-slate-100 border-2 border-transparent focus:border-indigo-500 p-4 rounded-2xl outline-none transition-all">
+                            <button onclick="buscarMol()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-2xl font-bold transition-all shadow-lg flex items-center gap-2">
+                                <span>Graficar</span>
+                                <div id="spinner" class="loader hidden"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="infoCard" class="hidden bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
+                        <h3 class="font-black text-indigo-900 mb-4 uppercase text-xs">Análisis de la Estructura</h3>
+                        <div id="pasos" class="space-y-3 text-indigo-800 text-sm italic"></div>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-2xl shadow-sm">
-                    <h3 class="font-bold text-gray-800 mb-4">Moléculas Guardadas</h3>
-                    <div id="historyGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                <div class="bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-4 flex flex-col items-center justify-center min-h-[350px]">
+                    <div id="molOutput" class="w-full flex justify-center">
+                        <div class="text-center text-slate-300">
+                            <p class="text-5xl">⌬</p>
+                            <p class="mt-2 font-medium">La estructura aparecerá aquí</p>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <h2 id="molNombre" class="text-2xl font-black text-slate-800 uppercase"></h2>
+                        <p id="molFormula" class="text-indigo-600 font-mono font-bold"></p>
+                    </div>
                 </div>
+
+            </div>
+
+            <div class="p-8 border-t border-slate-100 bg-slate-50/50">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Moléculas Guardadas</h3>
+                <div id="historial" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
             </div>
         </div>
     </div>
 
     <script>
         let RDKit;
-        let history = JSON.parse(localStorage.getItem('quimiStore') || '[]');
+        let storage = JSON.parse(localStorage.getItem('quimi_v4_data') || '[]');
 
-        // Inicializar RDKit
+        // Inicialización
         initRDKitModule().then(res => {
             RDKit = res;
-            document.getElementById('status').innerText = "● Motor Químico Activo";
-            document.getElementById('status').classList.replace('bg-indigo-800', 'bg-green-500');
-            renderHistory();
+            document.getElementById('status').innerText = "✓ Motor Químico Listo (Online)";
+            renderHistorial();
         });
 
-        // Traductor de nomenclatura Español -> Inglés
-        function translateIUPAC(name) {
-            let n = name.toLowerCase().trim();
-            const dict = {
-                'metil': 'methyl', 'etil': 'ethyl', 'propil': 'propyl', 'butil': 'butyl',
-                'pentil': 'pentyl', 'hexil': 'hexyl', 'heptil': 'heptyl', 'octil': 'octyl',
-                'metan': 'methan', 'etan': 'ethan', 'propan': 'propan', 'butan': 'butan',
-                'pentan': 'pentan', 'hexan': 'hexan', 'heptan': 'heptan', 'octan': 'octan',
-                'eno': 'ene', 'ino': 'yne', 'ano': 'ane',
-                'ácido': 'acid', 'acido': 'acid', 'oico': 'oic',
-                'benceno': 'benzene', 'fenol': 'phenol', 'tolueno': 'toluene'
-            };
-            
-            Object.keys(dict).forEach(key => {
-                n = n.replace(new RegExp(key, 'g'), dict[key]);
-            });
-            return n;
+        function traducir(n) {
+            return n.toLowerCase()
+                .replace(/metil/g, 'methyl').replace(/etil/g, 'ethyl')
+                .replace(/propil/g, 'propyl').replace(/butil/g, 'butyl')
+                .replace(/pentil/g, 'pentyl').replace(/hexil/g, 'hexyl')
+                .replace(/ano/g, 'ane').replace(/eno/g, 'ene').replace(/ino/g, 'yne')
+                .replace(/ácido /g, '').replace(/oico/g, 'oic acid')
+                .replace(/ciclo/g, 'cyclo');
         }
 
-        async function searchMolecule() {
-            const rawName = document.getElementById('chemInput').value;
-            if (!rawName) return;
+        async function buscarMol() {
+            const input = document.getElementById('chemInput').value.trim();
+            if (!input) return;
 
-            const btn = document.getElementById('mainBtn');
-            btn.innerHTML = '<div class="loader w-5 h-5 border-2 rounded-full"></div> Buscando...';
+            const spinner = document.getElementById('spinner');
+            const molOutput = document.getElementById('molOutput');
+            spinner.classList.remove('hidden');
+
+            const ingles = traducir(input);
             
-            const translatedName = translateIUPAC(rawName);
+            // USAMOS PUBCHEM API (Más estable)
+            const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(ingles)}/property/IsomericSMILES,MolecularFormula/JSON`;
 
             try {
-                // Buscamos en la base de datos de PubChem (Librería inmensa)
-                const response = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(translatedName)}/property/IsomericSMILES,MolecularFormula,IUPACName/JSON`);
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("No encontrado");
+                
                 const data = await response.json();
-
-                if (data.PropertyTable) {
-                    const props = data.PropertyTable.Properties[0];
-                    processResult(props.IsomericSMILES, rawName, props.MolecularFormula);
-                } else {
-                    alert("No se encontró esa estructura. Revisa la ortografía.");
-                }
+                const props = data.PropertyTable.Properties[0];
+                
+                graficar(props.IsomericSMILES, input, props.MolecularFormula);
             } catch (err) {
-                alert("Error de conexión con la base de datos química.");
+                // PLAN B: Intentar con una API de respaldo si PubChem falla
+                const urlBackup = `https://cactus.nci.nih.gov/chemical/structure/${encodeURIComponent(ingles)}/smiles`;
+                try {
+                    const resB = await fetch(urlBackup);
+                    const smilesB = await resB.text();
+                    if(smilesB.includes("HTML")) throw new Error();
+                    graficar(smilesB, input, "C?H?");
+                } catch(e) {
+                    alert("No pudimos encontrar '"+input+"'. Revisa si el nombre IUPAC es correcto.");
+                }
             } finally {
-                btn.innerHTML = '<span>Graficar Estructura</span>';
+                spinner.classList.add('hidden');
             }
         }
 
-        function processResult(smiles, originalName, formula) {
+        function graficar(smiles, nombre, formula) {
             const mol = RDKit.get_mol(smiles);
             const svg = mol.get_svg();
             
-            document.getElementById('resultDisplay').classList.remove('hidden');
-            document.getElementById('infoPanel').classList.remove('hidden');
             document.getElementById('molOutput').innerHTML = svg;
-            document.getElementById('displayTitle').innerText = originalName;
-            document.getElementById('formulaTag').innerText = formula;
+            document.getElementById('molNombre').innerText = nombre;
+            document.getElementById('molFormula').innerText = formula;
+            document.getElementById('infoCard').classList.remove('hidden');
 
-            // Generar explicación de pasos
-            generateLogicSteps(originalName, smiles);
+            // Explicación didáctica
+            const pasos = [];
+            if(nombre.includes('trans') || nombre.includes('cis')) pasos.push("• Se detectó <b>isomería geométrica</b>.");
+            if(nombre.includes('eno')) pasos.push("• Contiene <b>dobles enlaces</b> (Alqueno).");
+            if(nombre.includes('metil')) pasos.push("• Presenta un grupo <b>metilo</b> lateral.");
+            if(nombre.includes('ciclo')) pasos.push("• Estructura de <b>cadena cerrada</b>.");
+            document.getElementById('pasos').innerHTML = pasos.join('<br>') || "• Estructura orgánica estándar analizada.";
 
             // Guardar
-            const entry = { name: originalName, svg: svg, date: new Date().toLocaleTimeString() };
-            if(!history.find(h => h.name === originalName)) {
-                history.unshift(entry);
-                localStorage.setItem('quimiStore', JSON.stringify(history.slice(0, 8)));
-                renderHistory();
+            if(!storage.find(x => x.n === nombre)) {
+                storage.unshift({n: nombre, s: svg});
+                storage = storage.slice(0, 10);
+                localStorage.setItem('quimi_v4_data', JSON.stringify(storage));
+                renderHistorial();
             }
+            mol.delete();
         }
 
-        function generateLogicSteps(name, smiles) {
-            const steps = [];
-            const n = name.toLowerCase();
-
-            // Lógica de detección de funciones
-            if (n.includes('trans') || n.includes('cis')) steps.push("<b>Estereoquímica:</b> Se detectó isomería geométrica (cis/trans).");
-            if (n.includes('metil') || n.includes('etil')) steps.push("<b>Sustituyentes:</b> Se identificaron grupos alquilo laterales.");
-            
-            const roots = { 'hex': '6 carbonos', 'pent': '5 carbonos', 'but': '4 carbonos', 'prop': '3 carbonos', 'et': '2 carbonos' };
-            for (let root in roots) {
-                if (n.includes(root)) {
-                    steps.push(`<b>Cadena Principal:</b> Se identificó una base de ${roots[root]}.`);
-                    break;
-                }
-            }
-
-            if (n.includes('eno')) steps.push("<b>Prioridad:</b> El doble enlace determina la numeración de la cadena.");
-            if (n.includes('ol')) steps.push("<b>Grupo Funcional:</b> Presencia de alcohol (-OH) como grupo principal.");
-
-            document.getElementById('stepsList').innerHTML = steps.map(s => `<p class="border-b border-gray-100 pb-1">→ ${s}</p>`).join('');
-        }
-
-        function renderHistory() {
-            const grid = document.getElementById('historyGrid');
-            grid.innerHTML = history.map(item => `
-                <div class="bg-gray-50 p-2 rounded-lg border border-gray-200 text-center history-card">
-                    ${item.svg}
-                    <p class="text-[10px] font-bold truncate mt-1">${item.name}</p>
+        function renderHistorial() {
+            const container = document.getElementById('historial');
+            container.innerHTML = storage.map(i => `
+                <div class="bg-white p-2 rounded-2xl border border-slate-200 text-center mol-card transition-all">
+                    <div class="h-16 overflow-hidden">${i.s}</div>
+                    <p class="text-[9px] font-black truncate uppercase mt-1 text-slate-500">${i.n}</p>
                 </div>
             `).join('');
         }
